@@ -1,0 +1,46 @@
+{% extends "base_dashboard.html" %}
+{% block content %}
+<div class="profile-page">
+    <div class="page-header">
+        <h2>✏️ Edit Profile</h2>
+        <a href="/profile" class="secondary-btn">← Back</a>
+    </div>
+
+    <div class="glass-card edit-profile-card">
+        {% if error %}
+        <div class="error-msg">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST">
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" name="name" value="{{ user.name }}" required placeholder="Enter your full name">
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" name="email" value="{{ user.email }}" required placeholder="Enter your email">
+            </div>
+            <div class="form-group">
+                <label>Mobile Number</label>
+                <input type="text" name="mobile" value="{{ user.mobile or '' }}" placeholder="Enter your mobile number">
+            </div>
+            <div class="form-group">
+                <label>UPI ID <span style="opacity:0.6;font-size:12px;">(for receiving payments)</span></label>
+                <input type="text" name="upi_id" value="{{ user.upi_id or '' }}" placeholder="e.g. yourname@okaxis">
+            </div>
+            <div class="form-group password-locked">
+                <label>Password</label>
+                <div class="locked-field">
+                    <input type="password" value="placeholder" disabled placeholder="••••••••">
+                    <span class="lock-badge">🔒 Locked</span>
+                </div>
+                <small class="field-hint">To change your password, use <a href="/forgot">Forgot Password</a>.</small>
+            </div>
+            <div class="button-row" style="margin-top:28px;">
+                <button type="submit" class="primary-btn">💾 Save Changes</button>
+                <a href="/profile" class="secondary-btn">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

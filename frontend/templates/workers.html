@@ -1,0 +1,65 @@
+{% extends "base_dashboard.html" %}
+{% block content %}
+
+<h2 class="dashboard-title">Workers</h2>
+
+<div class="action-bar">
+    <a href="/add_worker"><button class="primary-btn add-worker-btn">+ Add Worker</button></a>
+</div>
+
+<div class="glass-table">
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Mobile</th>
+                <th>Daily Wage</th>
+                <th>Total Earned</th>
+                <th>Due Amount</th>
+                <th>Pay</th>
+                <th>View</th>
+                <th>Delete</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for worker in workers %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ worker.name }}</td>
+            <td>{{ worker.mobile or '—' }}</td>
+            <td>₹{{ "%.2f"|format(worker.daily_wage|float) }}</td>
+            <td>₹{{ "%.2f"|format(worker.total_earned|float) }}</td>
+            <td>₹{{ "%.2f"|format(worker.total_due|float) }}</td>
+            <td>
+                <button class="primary-btn small-btn"
+                    data-worker="{{ worker.worker_id }}"
+                    data-label="{{ worker.name }}"
+                    data-due="{{ worker.total_due }}"
+                    data-due="{{ worker.total_due }}"
+                    onclick="openWorkerPayTotal(this)">
+                    Pay
+                </button>
+            </td>
+            <td>
+                <a href="/worker_detail/{{ worker.worker_id }}">
+                    <button class="view-btn">View</button>
+                </a>
+            </td>
+            <td>
+                <a href="/delete_worker/{{ worker.worker_id }}"
+                   onclick="return confirm('Delete {{ worker.name }}? This cannot be undone.')">
+                    <button class="delete-btn">Delete</button>
+                </a>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" style="text-align:center;opacity:0.7;padding:30px;">
+            No workers yet. <a href="/add_worker" style="color:#a6ffd2;">Add one →</a>
+        </td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

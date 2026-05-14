@@ -1,0 +1,54 @@
+{% extends "base_dashboard.html" %}
+{% block content %}
+
+<h2 class="dashboard-title">Work Batches</h2>
+
+<div class="action-bar">
+    <a href="/add_work"><button class="primary-btn">+ Add Work</button></a>
+</div>
+
+<div class="glass-table">
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Work Name</th>
+                <th>Date</th>
+                <th>Workers</th>
+                <th>Total Expense</th>
+                <th>Total Due</th>
+                <th>View</th>
+                <th>Delete</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for work in works %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ work.work_name }}</td>
+            <td>{{ work.work_date or '—' }}</td>
+            <td>{{ work.worker_count or 0 }}</td>
+            <td>₹{{ "%.2f"|format((work.total_expense or 0)|float) }}</td>
+            <td>₹{{ "%.2f"|format((work.total_due or 0)|float) }}</td>
+            <td>
+                <a href="/work_detail/{{ work.work_id }}">
+                    <button class="view-btn">View</button>
+                </a>
+            </td>
+            <td>
+                <a href="/delete_work/{{ work.work_id }}"
+                   onclick="return confirm('Delete this work batch?')">
+                    <button class="delete-btn">Delete</button>
+                </a>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" style="text-align:center;opacity:0.7;padding:30px;">
+            No work entries yet. <a href="/add_work" style="color:#a6ffd2;">Add one →</a>
+        </td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

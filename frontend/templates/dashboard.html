@@ -1,0 +1,40 @@
+{% extends "base_dashboard.html" %}
+{% block content %}
+
+<h2 class="dashboard-title">Dashboard</h2>
+<h3 class="dashboard-subtitle">Welcome, {{ username }} 👋</h3>
+
+<div class="cards-container">
+
+    <div class="glass-card dashboard-card">
+        <div class="card-icon">🏗️</div>
+        <h3>Total Work</h3>
+        <p>{{ total_works }}</p>
+    </div>
+
+    <div class="glass-card dashboard-card">
+        <div class="card-icon">👷</div>
+        <h3>Total Workers</h3>
+        <p>{{ total_workers }}</p>
+    </div>
+
+    <div class="glass-card dashboard-card">
+        <div class="card-icon">💰</div>
+        <h3>Total Expense</h3>
+        <p>₹{{ "%.2f"|format(total_expense|float) }}</p>
+    </div>
+
+    <div class="glass-card dashboard-card">
+        <div class="card-icon">📋</div>
+        <h3>Total Due</h3>
+        <p>₹{{ "%.2f"|format(total_due|float) }}</p>
+    </div>
+
+</div>
+
+<div class="quick-actions">
+    <a href="/add_worker" class="primary-btn">+ Add Worker</a>
+    <a href="/add_work"   class="secondary-btn">+ Add Work</a>
+</div>
+
+{% endblock %}

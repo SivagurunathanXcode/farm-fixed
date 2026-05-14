@@ -1,0 +1,77 @@
+{% extends "base_dashboard.html" %}
+{% block content %}
+
+<a href="/workers" class="back-link">← Back to Workers</a>
+<h2 class="dashboard-title">Worker Details</h2>
+
+<div class="glass-card work-info-card">
+    <p><strong>Name:</strong> {{ worker.name }}</p>
+    <p><strong>Mobile:</strong> {{ worker.mobile or '—' }}</p>
+    <p><strong>Daily Wage:</strong> ₹{{ "%.2f"|format(worker.daily_wage|float) }}</p>
+    <p><strong>Address:</strong> {{ worker.address or '—' }}</p>
+    <p><strong>Notes:</strong> {{ worker.notes or '—' }}</p>
+    <p><strong>UPI ID:</strong>
+        {% if worker.upi_id %}
+            <span class="upi-badge">📲 {{ worker.upi_id }}</span>
+        {% else %}
+            <span style="opacity:0.45;">Not set</span>
+        {% endif %}
+    </p>
+    <p><strong>Total Earned:</strong> ₹{{ "%.2f"|format(worker.total_earned|float) }}</p>
+    <p><strong>Total Due:</strong> ₹{{ "%.2f"|format(worker.total_due|float) }}</p>
+    <div style="margin-top:20px;" class="button-row">
+        <a href="/edit_worker/{{ worker.worker_id }}">
+            <button class="primary-btn">Edit Worker</button>
+        </a>
+        <a href="/delete_worker/{{ worker.worker_id }}"
+           onclick="return confirm('Delete this worker?')">
+            <button class="delete-btn">Delete Worker</button>
+        </a>
+    </div>
+</div>
+
+<h3 class="section-title">Work History</h3>
+
+<div class="glass-table">
+    <table>
+        <thead>
+            <tr>
+                <th>Work Name</th>
+                <th>Date</th>
+                <th>Earned</th>
+                <th>Paid</th>
+                <th>Due</th>
+                <th>Pay</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for work in works %}
+        <tr>
+            <td><a href="/work_detail/{{ work.work_id }}" style="color:#a6ffd2;">{{ work.work_name }}</a></td>
+            <td>{{ work.work_date or '—' }}</td>
+            <td>₹{{ "%.2f"|format(work.earned|float) }}</td>
+            <td>₹{{ "%.2f"|format(work.paid|float) }}</td>
+            <td>₹{{ "%.2f"|format(work.due|float) }}</td>
+            <td>
+                {% if work.due > 0 %}
+                <button class="primary-btn small-btn"
+                    data-worker="{{ worker.worker_id }}"
+                    data-work="{{ work.work_id }}"
+                    data-due="{{ work.due }}"
+                    data-label="{{ worker.name }} – {{ work.work_name }}"
+                    onclick="openPayDialog(this)">
+                    Pay
+                </button>
+                {% else %}
+                <span class="paid-badge">Paid ✓</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" style="text-align:center;opacity:0.7;padding:20px;">No work records yet.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

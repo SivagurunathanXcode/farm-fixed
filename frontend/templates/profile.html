@@ -1,0 +1,47 @@
+{% extends "base_dashboard.html" %}
+{% block content %}
+<div class="profile-page">
+    <div class="page-header">
+        <h2>👤 My Profile</h2>
+        <a href="/edit_profile" class="primary-btn">✏️ Edit Profile</a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="profile-card glass-card">
+        <div class="profile-avatar-large">{{ user.name[0]|upper }}</div>
+        <div class="profile-info">
+            <div class="profile-field">
+                <span class="profile-label">Full Name</span>
+                <span class="profile-value">{{ user.name }}</span>
+            </div>
+            <div class="profile-field">
+                <span class="profile-label">Email</span>
+                <span class="profile-value">{{ user.email }}</span>
+            </div>
+            <div class="profile-field">
+                <span class="profile-label">Mobile</span>
+                <span class="profile-value">{{ user.mobile if user.mobile else '—' }}</span>
+            </div>
+            <div class="profile-field">
+                <span class="profile-label">UPI ID</span>
+                <span class="profile-value">
+                    {% if user.upi_id %}
+                        <span class="upi-badge">📲 {{ user.upi_id }}</span>
+                    {% else %}—{% endif %}
+                </span>
+            </div>
+            <div class="profile-field">
+                <span class="profile-label">Password</span>
+                <span class="profile-value">••••••••</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

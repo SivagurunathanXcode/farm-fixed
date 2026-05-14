@@ -1,0 +1,133 @@
+{% extends "base_dashboard.html" %}
+{% block content %}
+
+<a href="/work" class="back-link">← Back to Work</a>
+<h2 class="dashboard-title">
+    {% if work %}Edit Work{% else %}Add Work{% endif %}
+</h2>
+
+{% if error %}
+<div class="error-msg" style="max-width:500px;margin:0 auto 20px auto;">{{ error }}</div>
+{% endif %}
+
+<div class="glass-card worker-form-card">
+    <form method="POST">
+        <div class="form-group">
+            <label>Work Name *</label>
+            <input type="text" name="work_name"
+                value="{{ work.work_name if work else '' }}"
+                placeholder="e.g. Paddy Harvest" required>
+        </div>
+        <div class="form-group">
+            <label>Date</label>
+            <input type="date" name="work_date"
+                value="{{ work.work_date if work else '' }}">
+        </div>
+        <div class="form-group">
+            <label>Daily Wage (₹) per Worker</label>
+            <input type="number" name="daily_wage" step="0.01" min="0"
+                value="{{ work.daily_wage if work else '' }}"
+                placeholder="e.g. 600">
+        </div>
+
+        <div class="form-group">
+            <label>Select Workers *</label>
+
+            <div class="glass-dropdown" id="workerDropdown">
+                <input type="text"
+                    id="workerSearch"
+                    class="dropdown-display"
+                    placeholder="Search and select workers…"
+                    onfocus="openDropdown()"
+                    onkeyup="filterWorkers()"
+                    autocomplete="off">
+
+                <div class="dropdown-list" id="dropdownList">
+                    {% for worker in workers %}
+                    <div class="dropdown-item"
+                        data-worker-id="{{ worker.worker_id }}"
+                        data-worker-name="{{ worker.name|lower }}"
+                        onclick="selectWorker('{{ worker.worker_id }}','{{ worker.name }}')">
+                        {{ worker.name }}
+                    </div>
+                    {% else %}
+                    <div class="dropdown-item" style="opacity:0.6;cursor:default;">No workers found</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div id="selectedWorkers" style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;"></div>
+            <input type="hidden" name="workers" id="workersInput">
+        </div>
+
+        <div class="button-row">
+            <button type="submit" class="primary-btn">
+                {% if work %}Update Work{% else %}Create Work{% endif %}
+            </button>
+            <a href="/work" class="secondary-btn">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+let selectedWorkers = {{ selected_workers|tojson if selected_workers else [] }};
+
+function openDropdown(){
+    document.getElementById("dropdownList").classList.add("show");
+}
+
+function closeDropdown(){
+    document.getElementById("dropdownList").classList.remove("show");
+}
+
+function createTag(id, name){
+    const display = document.getElementById("selectedWorkers");
+    const hidden  = document.getElementById("workersInput");
+
+    const tag = document.createElement("span");
+    tag.className = "worker-tag";
+    tag.innerHTML = name + " <span class='tag-x'>✕</span>";
+    tag.onclick = function(){
+        selectedWorkers = selectedWorkers.filter(w => String(w) !== String(id));
+        tag.remove();
+        hidden.value = selectedWorkers.join(",");
+    };
+
+    display.appendChild(tag);
+    hidden.value = selectedWorkers.join(",");
+}
+
+function selectWorker(id, name){
+    if(!selectedWorkers.includes(id) && !selectedWorkers.includes(parseInt(id))){
+        selectedWorkers.push(id);
+        createTag(id, name);
+    }
+    document.getElementById("workerSearch").value = "";
+    filterWorkers();
+}
+
+function filterWorkers(){
+    const input   = document.getElementById("workerSearch").value.toLowerCase();
+    const items   = document.querySelectorAll(".dropdown-item[data-worker-name]");
+    items.forEach(function(item){
+        item.style.display = item.dataset.workerName.includes(input) ? "block" : "none";
+    });
+}
+
+window.onload = function(){
+    const hidden = document.getElementById("workersInput");
+    hidden.value = selectedWorkers.join(",");
+    selectedWorkers.forEach(function(id){
+        const el = document.querySelector(`[data-worker-id='${id}']`);
+        if(el) createTag(id, el.innerText.trim());
+    });
+};
+
+document.addEventListener("click", function(e){
+    if(!document.getElementById("workerDropdown").contains(e.target)){
+        closeDropdown();
+    }
+});
+</script>
+
+{% endblock %}

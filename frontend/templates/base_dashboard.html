@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farm Workers App</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<nav class="glass-navbar">
+    <div class="nav-left">
+        <a href="/dashboard" class="nav-logo">🌾 Farm Workers</a>
+        <div class="nav-links">
+            <a href="/dashboard" class="{% if request.path == '/dashboard' %}active-link{% endif %}">Dashboard</a>
+            <a href="/workers"   class="{% if '/workers' in request.path %}active-link{% endif %}">Workers</a>
+            <a href="/work"      class="{% if '/work' in request.path %}active-link{% endif %}">Work</a>
+        </div>
+    </div>
+    <div class="nav-right">
+        <a href="/profile" class="profile-link {% if request.path == '/profile' or request.path == '/edit_profile' %}active-link{% endif %}">
+            <span class="profile-avatar">{{ session.user[0]|upper }}</span>
+            <span class="user-name">{{ session.user }}</span>
+        </a>
+        <a href="/logout" class="logout-link">Logout</a>
+    </div>
+</nav>
+
+<div class="dashboard-container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}{% for cat, msg in messages %}
+        <div class="flash flash-{{ cat }}">{{ msg }}</div>
+      {% endfor %}{% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+</div>
+
+<!-- ══════════════════════════════════════════
+     UNIFIED PAYMENT MODAL  (3 steps)
+══════════════════════════════════════════ -->
+<div id="payModal" class="glass-payment-modal">
+  <div class="glass-card payment-card">
+
+    <!-- ── STEP 1 : amount + choose method ── -->
+    <div id="pmStep1">
+      <div class="pm-header">
+        <span class="pm-icon">💳</span>
+        <h3>Pay Worker</h3>
+      </div>
+      <p id="pmLabel" class="pm-label"></p>
+      <div class="pm-due-box">
+        Due Amount: <strong id="pmDue">₹0</strong>
+      </div>
+      <div class="pm-input-wrap">
+        <span class="pm-rupee">₹</span>
+        <input type="number" id="pmAmount" class="pm-amount-input"
+               placeholder="Enter amount" min="1" step="0.01">
+      </div>
+      <p id="pmError" class="pm-error"></p>
+      <div class="pm-methods">
+        <button class="pm-method-btn pm-cash"   onclick="pmChoose('cash')">
+          <span class="pm-method-icon">💵</span>
+          <span class="pm-method-title">Pay by Cash</span>
+          <span class="pm-method-sub">Instant update</span>
+        </button>
+        <button class="pm-method-btn pm-upiapp" onclick="pmChoose('upiapp')">
+          <span class="pm-method-icon">📲</span>
+          <span class="pm-method-title">Open UPI App</span>
+          <span class="pm-method-sub">Google Pay / PhonePe</span>
+        </button>
+        <button class="pm-method-btn pm-qr"     onclick="pmChoose('qr')">
+          <span class="pm-method-icon">🔲</span>
+          <span class="pm-method-title">UPI QR Code</span>
+          <span class="pm-method-sub">Scan with any app</span>
+        </button>
+      </div>
+      <div class="pm-footer">
+        <button class="secondary-btn" onclick="pmClose()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- ── STEP 2 : UPI App deep-link ── -->
+    <div id="pmStep2" style="display:none;">
+      <div class="pm-header">
+        <span class="pm-icon">📲</span>
+        <h3>Pay via UPI App</h3>
+      </div>
+      <p class="pm-label">Sending <strong id="upiAppAmt"></strong> to</p>
+      <div class="upi-worker-box">
+        <div class="upi-worker-name" id="upiAppName"></div>
+        <div class="upi-id-pill" id="upiAppId"></div>
+      </div>
+      <a id="upiAppLink" href="#" target="_blank" class="pm-upi-btn" onclick="pmUpiLinkTapped()">
+        <span>Open UPI App ↗</span>
+      </a>
+      <div id="upiAppMarkWrap" class="pm-mark-wrap" style="display:none;">
+        <p class="pm-confirm-msg">✅ Payment sent? Confirm to update records.</p>
+        <button class="pm-mark-btn" onclick="pmMarkDone()">Mark as Paid</button>
+      </div>
+      <div class="pm-footer">
+        <button class="secondary-btn" onclick="pmBack()">← Back</button>
+        <button class="secondary-btn" onclick="pmClose()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- ── STEP 3 : QR Code display ── -->
+    <div id="pmStep3" style="display:none;">
+      <div class="pm-header">
+        <span class="pm-icon">🔲</span>
+        <h3>UPI QR Code</h3>
+      </div>
+      <p class="pm-label">Scan to pay <strong id="qrAmt"></strong> to <span id="qrName"></span></p>
+      <div id="qrBox" class="pm-qr-box">
+        <div id="qrSpinner" class="qr-spinner">Generating QR code…</div>
+        <img id="qrImg" src="" alt="UPI QR Code"
+             style="display:none; max-width:100%; border-radius:8px;"
+             width="240" height="240">
+      </div>
+      <div class="upi-id-pill" id="qrUpiId" style="margin:10px auto;max-width:260px;"></div>
+      <div id="qrMarkWrap" class="pm-mark-wrap" style="display:none;margin-top:16px;">
+        <p class="pm-confirm-msg">✅ Scanned &amp; paid? Confirm to update records.</p>
+        <button class="pm-mark-btn" onclick="pmMarkDone()">Mark as Paid</button>
+      </div>
+      <div class="pm-footer">
+        <button class="secondary-btn" onclick="pmBack()">← Back</button>
+        <button class="secondary-btn" onclick="pmClose()">Cancel</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+<!-- ══════════════════════════════════════════ -->
+
+<script src="/static/js/script.js"></script>
+</body>
+</html>

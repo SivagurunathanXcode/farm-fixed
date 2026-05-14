@@ -1,0 +1,58 @@
+{% extends "base_dashboard.html" %}
+{% block content %}
+
+<a href="/workers" class="back-link">← Back to Workers</a>
+<h2 class="dashboard-title">
+    {% if worker %}Edit Worker{% else %}Add Worker{% endif %}
+</h2>
+
+{% if error %}
+<div class="error-msg" style="max-width:500px;margin:0 auto 20px auto;">{{ error }}</div>
+{% endif %}
+
+<div class="glass-card worker-form-card">
+    <form method="POST">
+        <div class="form-group">
+            <label>Worker Name *</label>
+            <input type="text" name="name"
+                value="{{ worker.name if worker else '' }}"
+                placeholder="Enter worker name" required>
+        </div>
+        <div class="form-group">
+            <label>Mobile Number</label>
+            <input type="text" name="mobile"
+                value="{{ worker.mobile if worker else '' }}"
+                placeholder="10-digit mobile">
+        </div>
+        <div class="form-group">
+            <label>Default Daily Wage (₹)</label>
+            <input type="number" name="daily_wage" step="0.01" min="0"
+                value="{{ worker.daily_wage if worker else '' }}"
+                placeholder="e.g. 500">
+        </div>
+        <div class="form-group">
+            <label>Address</label>
+            <input type="text" name="address"
+                value="{{ worker.address if worker else '' }}"
+                placeholder="Optional">
+        </div>
+        <div class="form-group">
+            <label>Notes</label>
+            <textarea name="notes" placeholder="Optional notes">{{ worker.notes if worker else '' }}</textarea>
+        </div>
+        <div class="form-group">
+            <label>UPI ID <span style="opacity:0.6;font-size:12px;">(for UPI payments)</span></label>
+            <input type="text" name="upi_id"
+                value="{{ worker.upi_id if worker else '' }}"
+                placeholder="e.g. worker@okaxis">
+        </div>
+        <div class="button-row">
+            <button type="submit" class="primary-btn">
+                {% if worker %}Update Worker{% else %}Add Worker{% endif %}
+            </button>
+            <a href="/workers" class="secondary-btn">Cancel</a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}
