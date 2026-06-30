@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 import random, sqlite3, os, hashlib, smtplib, io, base64
 from email.mime.text import MIMEText
 from urllib.parse import quote
-from PIL import Image
+import os
 
 # ─── QR CODE GENERATOR (pure Python + Pillow) ──────────────────────────────
 # Correct ISO 18004 implementation — produces fully scannable QR codes
@@ -644,7 +644,7 @@ def pay_worker_total():
     return "success"
 
 
-import os
+
 
 if __name__ == "__main__":
     app.run(
