@@ -1,69 +1,183 @@
-# 🌾 Farm Workers Due Maintenance App
+# 🌾 Farm Workers Due Maintenance System
 
-A Flask web application to manage farm workers, track work batches, and maintain payment dues.
+A full-stack web application developed to help farm owners efficiently manage daily wage workers, work records, earnings, payments, and pending dues from a single dashboard.
 
-## Features
-- User registration & login with hashed passwords
-- Password reset via OTP (email or console fallback)
-- Dashboard with totals (workers, works, expenses, dues)
-- Add / Edit / Delete workers
-- Create work batches and assign workers
-- Track per-worker payments and dues
-- Pay workers per-work or pay off total dues
-- Clean green glass UI with responsive design
+## 🌐 Live Demo
 
-## Tech Stack
-- **Backend**: Python 3 + Flask
-- **Database**: SQLite (file-based, no setup needed)
-- **Frontend**: Jinja2 templates, vanilla CSS + JS
+**Live Application:** https://farm-fixed.onrender.com
 
-## Setup & Run
+---
+
+# 📖 Overview
+
+The **Farm Workers Due Maintenance System** digitizes the traditional process of maintaining farm labor records. Instead of using notebooks or spreadsheets, farm owners can manage workers, assign work, track payments, and monitor pending dues through an intuitive web interface.
+
+---
+
+# ✨ Features
+
+### 👨‍🌾 Worker Management
+
+* Add new workers
+* View worker details
+* Edit worker information
+* Delete workers
+
+### 💼 Work Management
+
+* Record daily work assignments
+* Track completed work
+* Automatically calculate wages
+* Maintain work history
+
+### 💰 Payment Management
+
+* Record worker payments
+* Calculate pending dues
+* Maintain complete payment history
+* View total earnings
+
+### 📊 Dashboard
+
+* Total Workers
+* Total Work Records
+* Total Expenses
+* Total Pending Due Amount
+* Worker Summary
+
+### 🔐 Authentication
+
+* User Login
+* Session Management
+* Secure Logout
+
+---
+
+# 🛠️ Tech Stack
+
+## Frontend
+
+* HTML5
+* CSS3
+* JavaScript
+
+## Backend
+
+* Python
+* Flask
+
+## Database
+
+* SQLite
+
+## Deployment
+
+* Render
+
+## Version Control
+
+* Git
+* GitHub
+
+---
+
+# 📂 Project Structure
+
+```text
+farm-fixed/
+│
+├── backend/
+│   ├── app.py
+│   ├── requirements.txt
+│   ├── farm_workers.db
+│   ├── templates/
+│   └── static/
+│
+├── README.md
+└── LICENSE
+```
+
+---
+
+# ⚙️ Installation
+
+### Clone the repository
 
 ```bash
-# 1. Navigate to backend folder
-cd backend
+git clone https://github.com/SivagurunathanXcode/farm-fixed.git
+```
 
-# 2. Install Flask (if not already installed)
-pip install flask
+### Navigate to the backend
 
-# 3. Run the app
+```bash
+cd farm-fixed/backend
+```
+
+### Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### Run the application
+
+```bash
 python app.py
 ```
 
-Then open your browser at: **http://127.0.0.1:5000**
+Open your browser and visit:
 
-The SQLite database (`farm_workers.db`) is created automatically on first run inside the `backend/` folder.
-
-## Project Structure
-
-```
-farm-workers-app-complete/
-├── backend/
-│   ├── app.py            ← Main Flask application
-│   ├── requirements.txt
-│   └── farm_workers.db   ← Auto-created on first run
-└── frontend/
-    ├── templates/
-    │   ├── base_public.html
-    │   ├── base_dashboard.html
-    │   ├── about.html
-    │   ├── login.html
-    │   ├── register.html
-    │   ├── forgot.html
-    │   ├── verify.html
-    │   ├── reset.html
-    │   ├── dashboard.html
-    │   ├── workers.html
-    │   ├── worker_detail.html
-    │   ├── add_worker.html
-    │   ├── work.html
-    │   ├── work_detail.html
-    │   └── add_work.html
-    └── static/
-        ├── css/style.css
-        └── js/script.js
+```text
+http://127.0.0.1:5000
 ```
 
-## Notes
-- The OTP is printed to the server console if email is not configured.
-- To enable email OTP, set your Gmail credentials in `app.py` → `send_email_otp()`.
+---
+
+# 🚀 Future Enhancements
+
+* PostgreSQL/MySQL integration
+* Cloud database support
+* Mobile responsive interface
+* PDF report generation
+* Excel export
+* SMS & Email notifications
+* Multi-farm management
+* Analytics dashboard
+* Role-based authentication
+
+---
+
+# 📚 What I Learned
+
+This project helped me strengthen my knowledge of:
+
+* Python & Flask
+* CRUD Operations
+* SQLite Database
+* Authentication & Sessions
+* HTML, CSS & JavaScript
+* Git & GitHub
+* Web Application Deployment
+* Full-Stack Web Development
+
+---
+
+# 👨‍💻 Developer
+
+**Sivagurunathan V**
+
+* 🌐 Portfolio: https://sivagurunathanxcode.github.io/Portfolio/
+* 💻 GitHub: https://github.com/SivagurunathanXcode
+* 🚀 Live Project: https://farm-fixed.onrender.com
+
+---
+
+# ⭐ Support
+
+If you found this project useful, please consider giving it a **⭐ Star** on GitHub. Your support motivates me to build more real-world open-source projects.
+
+---
+
+# 📄 License
+
+This project is licensed under the MIT License.
