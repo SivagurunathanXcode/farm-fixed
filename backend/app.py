@@ -313,12 +313,18 @@ def forgot():
         conn = get_db(); u = conn.execute("SELECT * FROM users WHERE email=? OR mobile=?",(ui,ui)).fetchone(); conn.close()
         if u:
             otp = str(random.randint(100000,999999))
-            session["otp"] = otp; session["reset_user"] = u["email"]
-            if "@" in ui: send_otp_email(u["email"], otp)
-            flash(f"OTP sent! (Dev: {otp})","info")
-            return redirect(url_for("verify"))
-        error = "No account found."
-    return render_template("forgot.html", error=error)
+            session["otp"] = otp
+            session["otp_time"] = time.time()
+            session["otp_attempts"] = 0
+            session["reset_user"] = u["email"]
+
+    try:
+        send_otp_email(u["email"], otp)
+        flash(f"An OTP has been sent to {u['email']}.", "success")
+        return redirect(url_for("verify"))
+    except Exception as e:
+        print("EMAIL ERROR:", e)
+        flash("Unable to send OTP. Please try again later.", "error")
 
 @app.route("/verify", methods=["GET","POST"])
 def verify():
