@@ -1,3 +1,6 @@
+import time
+from tkinter import Image
+
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 import random, sqlite3, os, hashlib, smtplib, io, base64
 from email.mime.text import MIMEText
@@ -317,7 +320,6 @@ def forgot():
             session["otp_time"] = time.time()
             session["otp_attempts"] = 0
             session["reset_user"] = u["email"]
-
     try:
         send_otp_email(u["email"], otp)
         flash(f"An OTP has been sent to {u['email']}.", "success")
