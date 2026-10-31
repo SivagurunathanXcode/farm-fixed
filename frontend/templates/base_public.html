@@ -28,5 +28,6 @@
     {% block content %}{% endblock %}
 </div>
 <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+{% block scripts %}{% endblock %}   <!-- NEW: lets forgot.html add its own script; without it the Phone.email code has nowhere to go -->
 </body>
 </html>

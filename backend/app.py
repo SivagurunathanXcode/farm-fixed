@@ -1,8 +1,18 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
-import random, sqlite3, os, hashlib, smtplib, io, base64
-from email.mime.text import MIMEText
-from urllib.parse import quote
+from flask import Flask, app, render_template, request, redirect, url_for, session, flash, jsonify
+import sqlite3, os, hashlib, io, base64
+import json, re, time
+import urllib.request
 import os
+
+PHONE_EMAIL_CLIENT_ID = os.environ.get("PHONE_EMAIL_CLIENT_ID", "12619419925158335855")
+PHONE_EMAIL_HOST = "user.phone.email" 
+
+app.secret_key = os.environ.get("SECRET_KEY", "dev-only-change-me")
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True, 
+    SESSION_COOKIE_SAMESITE="Lax", 
+    SESSION_COOKIE_SECURE=bool(os.environ.get("RENDER")),
+)
 
 # ─── QR CODE GENERATOR (pure Python + Pillow) ──────────────────────────────
 # Correct ISO 18004 implementation — produces fully scannable QR codes
@@ -216,14 +226,25 @@ def init_db():
 
 def hash_pw(p): return hashlib.sha256(p.encode()).hexdigest()
 
-def send_otp_email(to, otp):
+class _NoRedirect(urllib.request.HTTPRedirectHandler):   # custom handler so urlopen never follows redirects
+    def redirect_request(self, *a, **k): return None     # without this, a redirect could send your server to another host and bypass the host check
+_opener = urllib.request.build_opener(_NoRedirect)       # opener used below; define it ABOVE verified_email_from_url or the function cannot find it
+
+def verified_email_from_url(user_json_url):
+    p = urlparse(user_json_url)                          # split the URL so each part can be checked
+    if (p.scheme != "https"                              # reject plain http; the email must not travel unencrypted
+            or p.hostname != PHONE_EMAIL_HOST            # reject any host except Phone.email (blocks server-side request forgery)
+            or p.port not in (None, 443)                 # reject odd ports
+            or p.username or p.password                  # reject "user:pass@host" tricks
+            or not p.path.endswith(".json")):            # the real file is always a .json
+        return None                                      # None means verification failed
     try:
-        sender, pw = "sivagurunathanv23@gmail.com", "yieznbfnopzaheba"
-        msg = MIMEText(f"Your OTP is: {otp}")
-        msg["Subject"] = "OTP – Farm Workers App"; msg["From"] = sender; msg["To"] = to
-        s = smtplib.SMTP_SSL("smtp.gmail.com", 465)
-        s.login(sender, pw); s.sendmail(sender, to, msg.as_string()); s.quit()
-    except Exception as e: print("EMAIL ERROR:", e)
+        with _opener.open(user_json_url, timeout=10) as r:       # fetch the file; the timeout stops a slow server from hanging your app
+            data = json.loads(r.read(20000).decode("utf-8"))     # read at most 20 KB so a huge reply cannot use up memory
+    except Exception:
+        return None                                      # network error, bad JSON or redirect: all count as failed verification
+    email = str(data.get("user_email_id", "")).strip().lower()   # the verified email; lowercase because people type "A@x.com" and "a@x.com"
+    return email if re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email) else None  # basic shape check; None if the field is missing or odd
 
 def login_required(f):
     from functools import wraps
@@ -261,6 +282,7 @@ def register():
     error = None
     if request.method == "POST":
         name,email,mobile = (request.form.get(k,"").strip() for k in ("name","email","mobile"))
+        email = email.lower()   # store emails lowercase so the "forgot" lookup and the UNIQUE rule agree; without it "A@x.com" and "a@x.com" become two accounts
         pwd,confirm,upi = request.form.get("password",""), request.form.get("confirm",""), request.form.get("upi_id","").strip()
         if pwd != confirm: error = "Passwords do not match."
         elif not name or not email or not pwd: error = "Name, email, password required."
@@ -292,6 +314,7 @@ def edit_profile():
     error = None
     if request.method == "POST":
         name,email,mobile,upi = (request.form.get(k,"").strip() for k in ("name","email","mobile","upi_id"))
+        email = email.lower()   # store emails lowercase so the "forgot" lookup and the UNIQUE rule agree; without it "A@x.com" and "a@x.com" become two accounts
         if not name or not email: error = "Name and email required."
         else:
             try:
@@ -305,44 +328,45 @@ def edit_profile():
     return render_template("edit_profile.html", user=u, error=error)
 
 # ─── PASSWORD RESET ─────────────────────────
-@app.route("/forgot", methods=["GET","POST"])
+@app.route("/forgot")
 def forgot():
-    error = None
-    if request.method == "POST":
-        ui = request.form.get("identifier","").strip()
-        conn = get_db(); u = conn.execute("SELECT * FROM users WHERE email=? OR mobile=?",(ui,ui)).fetchone(); conn.close()
-        if u:
-            otp = str(random.randint(100000,999999))
-            session["otp"] = otp; session["reset_user"] = u["email"]
-            if "@" in ui: send_otp_email(u["email"], otp)
-            flash(f"OTP sent! (Dev: {otp})","info")
-            return redirect(url_for("verify"))
-        error = "No account found."
-    return render_template("forgot.html", error=error)
+    return render_template("forgot.html", client_id=PHONE_EMAIL_CLIENT_ID)  # page only shows the Phone.email button; no form POST any more
 
-@app.route("/verify", methods=["GET","POST"])
-def verify():
-    error = None
-    if request.method == "POST":
-        if request.form.get("otp","").strip() == session.get("otp"):
-            session["otp_verified"] = True; return redirect(url_for("reset"))
-        error = "Invalid OTP."
-    return render_template("verify.html", error=error)
-
-@app.route("/reset", methods=["GET","POST"])
+@app.route("/forgot/email", methods=["POST"])
+def forgot_email():
+    body = request.get_json(silent=True) or {}                              # JSON sent by the button's JS; silent=True avoids a crash on bad input
+    email = verified_email_from_url(str(body.get("user_json_url", "")))     # the ONLY source of the email; never trust an email typed or sent by the browser
+    if not email:
+        return jsonify(ok=False, error="Email verification failed. Please try again."), 400
+    conn = get_db()
+    rows = conn.execute("SELECT user_id FROM users WHERE lower(email)=?", (email,)).fetchall()  # lower() because SQLite compares text case-sensitively
+    conn.close()
+    if not rows:
+        return jsonify(ok=False, error="No account uses this email address."), 404
+    if len(rows) > 1:                                                       # only possible if two accounts differ by letter case
+        return jsonify(ok=False, error="More than one account uses this email. Please contact support."), 409
+    session["reset_user_id"] = rows[0]["user_id"]                           # proves "this browser verified this account's email"; /reset checks it
+    session["reset_expires"] = time.time() + 600                            # 10-minute window; without it a verified session stays valid forever
+    return jsonify(ok=True, next=url_for("reset"))       
+                   # tells the JS where to go
+@app.route("/reset", methods=["GET", "POST"])
 def reset():
-    if not session.get("otp_verified"): return redirect(url_for("forgot"))
+    reset_id = session.get("reset_user_id")                                 # set only by /forgot/email after email verification
+    if not reset_id or time.time() > session.get("reset_expires", 0):       # not verified, or the 10 minutes ran out
+        for k in ("reset_user_id", "reset_expires"): session.pop(k, None)   # clear stale state
+        flash("Please verify your email again.", "info")
+        return redirect(url_for("forgot"))
     error = None
     if request.method == "POST":
-        pwd,cf = request.form.get("password",""), request.form.get("confirm","")
+        pwd, cf = request.form.get("password", ""), request.form.get("confirm", "")
         if pwd != cf: error = "Passwords do not match."
         elif not pwd: error = "Password cannot be empty."
         else:
             conn = get_db()
-            conn.execute("UPDATE users SET password=? WHERE email=?",(hash_pw(pwd),session.get("reset_user")))
+            conn.execute("UPDATE users SET password=? WHERE user_id=?", (hash_pw(pwd), reset_id))  # by user_id: the verified account is the one that gets reset
             conn.commit(); conn.close()
-            for k in ["otp","otp_verified","reset_user"]: session.pop(k,None)
-            flash("Password reset. Please log in.","success")
+            for k in ("reset_user_id", "reset_expires"): session.pop(k, None)  # one reset per verification; without this the same session could reset again
+            flash("Password reset. Please log in.", "success")
             return redirect(url_for("login"))
     return render_template("reset.html", error=error)
 
