@@ -1,7 +1,7 @@
-from flask import Flask, app, render_template, request, redirect, url_for, session, flash, jsonify
-import sqlite3, os, hashlib, io, base64
-import json, re, time
-import urllib.request
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+import random, sqlite3, os, hashlib, smtplib, io, base64
+from email.mime.text import MIMEText
+from urllib.parse import quote
 import os
 
 PHONE_EMAIL_CLIENT_ID = os.environ.get("PHONE_EMAIL_CLIENT_ID", "12619419925158335855")
@@ -330,26 +330,29 @@ def edit_profile():
 # ─── PASSWORD RESET ─────────────────────────
 @app.route("/forgot")
 def forgot():
-    return render_template("forgot.html", client_id=PHONE_EMAIL_CLIENT_ID)  # page only shows the Phone.email button; no form POST any more
+    error = None
+    if request.method == "POST":
+        ui = request.form.get("identifier","").strip()
+        conn = get_db(); u = conn.execute("SELECT * FROM users WHERE email=? OR mobile=?",(ui,ui)).fetchone(); conn.close()
+        if u:
+            otp = str(random.randint(100000,999999))
+            session["otp"] = otp; session["reset_user"] = u["email"]
+            if "@" in ui: send_otp_email(u["email"], otp)
+            flash(f"OTP sent! (Dev: {otp})","info")
+            return redirect(url_for("verify"))
+        error = "No account found."
+    return render_template("forgot.html", error=error)
 
-@app.route("/forgot/email", methods=["POST"])
-def forgot_email():
-    body = request.get_json(silent=True) or {}                              # JSON sent by the button's JS; silent=True avoids a crash on bad input
-    email = verified_email_from_url(str(body.get("user_json_url", "")))     # the ONLY source of the email; never trust an email typed or sent by the browser
-    if not email:
-        return jsonify(ok=False, error="Email verification failed. Please try again."), 400
-    conn = get_db()
-    rows = conn.execute("SELECT user_id FROM users WHERE lower(email)=?", (email,)).fetchall()  # lower() because SQLite compares text case-sensitively
-    conn.close()
-    if not rows:
-        return jsonify(ok=False, error="No account uses this email address."), 404
-    if len(rows) > 1:                                                       # only possible if two accounts differ by letter case
-        return jsonify(ok=False, error="More than one account uses this email. Please contact support."), 409
-    session["reset_user_id"] = rows[0]["user_id"]                           # proves "this browser verified this account's email"; /reset checks it
-    session["reset_expires"] = time.time() + 600                            # 10-minute window; without it a verified session stays valid forever
-    return jsonify(ok=True, next=url_for("reset"))       
-                   # tells the JS where to go
-@app.route("/reset", methods=["GET", "POST"])
+@app.route("/verify", methods=["GET","POST"])
+def verify():
+    error = None
+    if request.method == "POST":
+        if request.form.get("otp","").strip() == session.get("otp"):
+            session["otp_verified"] = True; return redirect(url_for("reset"))
+        error = "Invalid OTP."
+    return render_template("verify.html", error=error)
+
+@app.route("/reset", methods=["GET","POST"])
 def reset():
     reset_id = session.get("reset_user_id")                                 # set only by /forgot/email after email verification
     if not reset_id or time.time() > session.get("reset_expires", 0):       # not verified, or the 10 minutes ran out
