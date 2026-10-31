@@ -1,21 +1,25 @@
-import time
-from tkinter import Image
-
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
-import random, sqlite3, os, hashlib, smtplib, io, base64
-from email.mime.text import MIMEText
-from urllib.parse import quote
+import io
+import base64
+import hashlib
 import os
+import sqlite3
+from urllib.parse import quote
+
+from PIL import Image
+from flask import (
+    Flask,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    session,
+    flash,
+    jsonify
+)
 
 PHONE_EMAIL_CLIENT_ID = os.environ.get("PHONE_EMAIL_CLIENT_ID", "12619419925158335855")
 PHONE_EMAIL_HOST = "user.phone.email" 
 
-app.secret_key = os.environ.get("SECRET_KEY", "dev-only-change-me")
-app.config.update(
-    SESSION_COOKIE_HTTPONLY=True, 
-    SESSION_COOKIE_SAMESITE="Lax", 
-    SESSION_COOKIE_SECURE=bool(os.environ.get("RENDER")),
-)
 
 # ─── QR CODE GENERATOR (pure Python + Pillow) ──────────────────────────────
 # Correct ISO 18004 implementation — produces fully scannable QR codes
@@ -188,7 +192,12 @@ DB_PATH  = os.path.join(BASE_DIR, "farm_workers.db")
 app = Flask(__name__,
     template_folder="../frontend/templates",
     static_folder="../frontend/static")
-app.secret_key = "farm_workers_secret_key_2024"
+app.secret_key = os.environ.get("SECRET_KEY", "dev-only-change-me")
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True, 
+    SESSION_COOKIE_SAMESITE="Lax", 
+    SESSION_COOKIE_SECURE=bool(os.environ.get("RENDER")),
+)
 
 # ─── DB ─────────────────────────────────────
 def get_db():
@@ -229,25 +238,6 @@ def init_db():
 
 def hash_pw(p): return hashlib.sha256(p.encode()).hexdigest()
 
-class _NoRedirect(urllib.request.HTTPRedirectHandler):   # custom handler so urlopen never follows redirects
-    def redirect_request(self, *a, **k): return None     # without this, a redirect could send your server to another host and bypass the host check
-_opener = urllib.request.build_opener(_NoRedirect)       # opener used below; define it ABOVE verified_email_from_url or the function cannot find it
-
-def verified_email_from_url(user_json_url):
-    p = urlparse(user_json_url)                          # split the URL so each part can be checked
-    if (p.scheme != "https"                              # reject plain http; the email must not travel unencrypted
-            or p.hostname != PHONE_EMAIL_HOST            # reject any host except Phone.email (blocks server-side request forgery)
-            or p.port not in (None, 443)                 # reject odd ports
-            or p.username or p.password                  # reject "user:pass@host" tricks
-            or not p.path.endswith(".json")):            # the real file is always a .json
-        return None                                      # None means verification failed
-    try:
-        with _opener.open(user_json_url, timeout=10) as r:       # fetch the file; the timeout stops a slow server from hanging your app
-            data = json.loads(r.read(20000).decode("utf-8"))     # read at most 20 KB so a huge reply cannot use up memory
-    except Exception:
-        return None                                      # network error, bad JSON or redirect: all count as failed verification
-    email = str(data.get("user_email_id", "")).strip().lower()   # the verified email; lowercase because people type "A@x.com" and "a@x.com"
-    return email if re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email) else None  # basic shape check; None if the field is missing or odd
 
 def login_required(f):
     from functools import wraps
@@ -330,56 +320,6 @@ def edit_profile():
     conn.close()
     return render_template("edit_profile.html", user=u, error=error)
 
-# ─── PASSWORD RESET ─────────────────────────
-@app.route("/forgot")
-def forgot():
-    error = None
-    if request.method == "POST":
-        ui = request.form.get("identifier","").strip()
-        conn = get_db(); u = conn.execute("SELECT * FROM users WHERE email=? OR mobile=?",(ui,ui)).fetchone(); conn.close()
-        if u:
-            otp = str(random.randint(100000,999999))
-            session["otp"] = otp
-            session["otp_time"] = time.time()
-            session["otp_attempts"] = 0
-            session["reset_user"] = u["email"]
-    try:
-        send_otp_email(u["email"], otp)
-        flash(f"An OTP has been sent to {u['email']}.", "success")
-        return redirect(url_for("verify"))
-    except Exception as e:
-        print("EMAIL ERROR:", e)
-        flash("Unable to send OTP. Please try again later.", "error")
-
-@app.route("/verify", methods=["GET","POST"])
-def verify():
-    error = None
-    if request.method == "POST":
-        if request.form.get("otp","").strip() == session.get("otp"):
-            session["otp_verified"] = True; return redirect(url_for("reset"))
-        error = "Invalid OTP."
-    return render_template("verify.html", error=error)
-
-@app.route("/reset", methods=["GET","POST"])
-def reset():
-    reset_id = session.get("reset_user_id")                                 # set only by /forgot/email after email verification
-    if not reset_id or time.time() > session.get("reset_expires", 0):       # not verified, or the 10 minutes ran out
-        for k in ("reset_user_id", "reset_expires"): session.pop(k, None)   # clear stale state
-        flash("Please verify your email again.", "info")
-        return redirect(url_for("forgot"))
-    error = None
-    if request.method == "POST":
-        pwd, cf = request.form.get("password", ""), request.form.get("confirm", "")
-        if pwd != cf: error = "Passwords do not match."
-        elif not pwd: error = "Password cannot be empty."
-        else:
-            conn = get_db()
-            conn.execute("UPDATE users SET password=? WHERE user_id=?", (hash_pw(pwd), reset_id))  # by user_id: the verified account is the one that gets reset
-            conn.commit(); conn.close()
-            for k in ("reset_user_id", "reset_expires"): session.pop(k, None)  # one reset per verification; without this the same session could reset again
-            flash("Password reset. Please log in.", "success")
-            return redirect(url_for("login"))
-    return render_template("reset.html", error=error)
 
 # ─── DASHBOARD ─────────────────────────────
 @app.route("/dashboard")
