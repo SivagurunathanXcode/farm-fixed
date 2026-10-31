@@ -28,14 +28,6 @@
                 <label>UPI ID <span style="opacity:0.6;font-size:12px;">(for receiving payments)</span></label>
                 <input type="text" name="upi_id" value="{{ user.upi_id or '' }}" placeholder="e.g. yourname@okaxis">
             </div>
-            <div class="form-group password-locked">
-                <label>Password</label>
-                <div class="locked-field">
-                    <input type="password" value="placeholder" disabled placeholder="••••••••">
-                    <span class="lock-badge">🔒 Locked</span>
-                </div>
-                <small class="field-hint">To change your password, use <a href="/forgot">Forgot Password</a>.</small>
-            </div>
             <div class="button-row" style="margin-top:28px;">
                 <button type="submit" class="primary-btn">💾 Save Changes</button>
                 <a href="/profile" class="secondary-btn">Cancel</a>
